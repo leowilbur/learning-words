@@ -16,7 +16,7 @@ struct WordProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (WordEntry) -> Void) {
-        completion(WordEntry(date: .now, word: WordSchedule.word(forSlot: WordSchedule.slot(at: .now, intervalHours: Self.hours))))
+        completion(WordEntry(date: .now, word: WordSchedule.word(forHourSlot: WordSchedule.slot(at: .now, intervalHours: Self.hours))))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<WordEntry>) -> Void) {
@@ -25,7 +25,7 @@ struct WordProvider: TimelineProvider {
         let entries = (0..<Self.entriesPerTimeline).map { offset -> WordEntry in
             let slot = first + offset
             let date = offset == 0 ? now : WordSchedule.slotStart(slot, intervalHours: Self.hours, near: now)
-            return WordEntry(date: date, word: WordSchedule.word(forSlot: slot))
+            return WordEntry(date: date, word: WordSchedule.word(forHourSlot: slot))
         }
         completion(Timeline(entries: entries, policy: .atEnd))
     }
@@ -236,7 +236,7 @@ struct WordWidget: Widget {
                 }
         }
         .configurationDisplayName("Từ mới")
-        .description("Từ vựng và câu giao tiếp kiểu Mỹ. Chạm loa hoặc câu để nghe.")
+        .description("Lần lượt hiện 10 từ của hôm nay, đổi mỗi giờ. Chạm loa hoặc câu để nghe.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline])
     }
 }

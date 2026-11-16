@@ -57,22 +57,63 @@ struct WordDetail: View {
 struct TodayView: View {
     @EnvironmentObject private var model: AppModel
 
+    private var words: [Word] { WordSchedule.words(forDay: model.day) }
+
+    private var title: String {
+        guard model.day != WordSchedule.day(at: .now) else { return "\(WordSchedule.wordsPerDay) từ hôm nay" }
+        return WordSchedule.dayStart(model.day, near: .now).formatted(date: .abbreviated, time: .omitted)
+    }
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                if let word = model.currentWord {
-                    WordDetail(word: word)
-                } else {
+        NavigationStack(path: $model.path) {
+            List(words) { word in
+                HStack(spacing: 12) {
+                    Button { speak(word.word) } label: {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.body)
+                            .frame(width: 36, height: 36)
+                            .background(Color.accentColor.opacity(0.15), in: Circle())
+                    }
+                    .buttonStyle(.borderless)
+                    NavigationLink(value: word) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text(word.word).font(.headline)
+                                Text(word.ipa)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text(word.meaning).font(.subheadline)
+                            if let example = word.examples.first {
+                                Text(example.en)
+                                    .font(.footnote)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+                        }
+                    }
+                }
+            }
+            .overlay {
+                if words.isEmpty {
                     ContentUnavailableView("Chưa có dữ liệu từ vựng", systemImage: "book.closed")
                 }
             }
-            .navigationTitle("Từ mới")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationDestination(for: Word.self) { word in
+                ScrollView { WordDetail(word: word) }
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+            .navigationTitle(title)
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
-                    Button { model.step(-1) } label: { Label("Từ trước", systemImage: "chevron.left") }
+                    Button { model.day -= 1 } label: { Label("Hôm trước", systemImage: "chevron.left") }
                     Spacer()
-                    Button { model.step(1) } label: { Label("Từ tiếp", systemImage: "chevron.right") }
+                    Button { speak(WordSchedule.lessonSpeech(words, withExamples: true)) } label: {
+                        Label("Nghe cả bài", systemImage: "play.circle.fill")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    Spacer()
+                    Button { model.day += 1 } label: { Label("Hôm sau", systemImage: "chevron.right") }
                 }
             }
         }
@@ -126,8 +167,7 @@ struct SettingsView: View {
     @AppStorage(Speaker.widgetLogKey) private var widgetLog = "Chưa có lần nào"
     @AppStorage(Speaker.notificationLogKey) private var notificationLog = "Chưa có lần nào"
     @AppStorage(NotificationManager.enabledKey) private var notificationsEnabled = true
-    @AppStorage(NotificationManager.startHourKey) private var startHour = 7
-    @AppStorage(NotificationManager.endHourKey) private var endHour = 22
+    @AppStorage(NotificationManager.hourKey) private var notificationHour = NotificationManager.defaultHour
     private let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
 
     var body: some View {
@@ -148,12 +188,9 @@ struct SettingsView: View {
                     Text("Áp dụng cho cả app và widget.")
                 }
                 Section {
-                    Toggle("Từ mới mỗi giờ", isOn: $notificationsEnabled)
+                    Toggle("Bài học \(WordSchedule.wordsPerDay) từ mỗi ngày", isOn: $notificationsEnabled)
                     if notificationsEnabled {
-                        Picker("Từ", selection: $startHour) {
-                            ForEach(0..<24, id: \.self) { Text("\($0):00").tag($0) }
-                        }
-                        Picker("Đến", selection: $endHour) {
+                        Picker("Giờ nhận", selection: $notificationHour) {
                             ForEach(0..<24, id: \.self) { Text("\($0):00").tag($0) }
                         }
                         Button("Gửi thử sau 5 giây") {
@@ -163,13 +200,13 @@ struct SettingsView: View {
                 } header: {
                     Text("Thông báo")
                 } footer: {
-                    Text("Giữ lên thông báo để hiện nút Nghe từ và Nghe từ và câu mẫu. Chạm vào thông báo để mở app và nghe từ đó. Nếu không thấy thông báo, bật Cho phép trong Cài đặt > Thông báo > Từ Mới.")
+                    Text("Giữ lên thông báo để xem đủ bài và hiện nút Nghe \(WordSchedule.wordsPerDay) từ, Nghe từ và câu mẫu. Chạm vào thông báo để mở bài học hôm đó. Nếu không thấy thông báo, bật Cho phép trong Cài đặt > Thông báo > Từ Mới.")
                 }
-                .onChange(of: [notificationsEnabled ? 1 : 0, startHour, endHour]) {
+                .onChange(of: [notificationsEnabled ? 1 : 0, notificationHour]) {
                     Task { await NotificationManager.shared.refresh() }
                 }
                 Section("Widget") {
-                    Text("Widget tự đổi sang từ mới mỗi giờ.")
+                    Text("Widget lần lượt hiện \(WordSchedule.wordsPerDay) từ của hôm nay, đổi mỗi giờ.")
                     Text("Chạm loa hoặc một câu để nghe ngay. Chạm chỗ khác để mở app và nghe từ đó.")
                     Text("Màn hình khóa: giữ lên màn hình khóa, chọn Tùy chỉnh, rồi thêm tiện ích Từ Mới vào ô dưới đồng hồ.")
                     Text("Để giọng đọc hay hơn: Cài đặt > Trợ năng > Nội dung được đọc > Giọng nói > Tiếng Anh, tải một giọng Mỹ chất lượng cao.")

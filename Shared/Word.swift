@@ -26,6 +26,8 @@ enum WordStore {
 
 enum WordSchedule {
     static let defaultIntervalHours = 1
+    static let wordsPerDay = 10
+    private static let hoursPerDay = 24
     static let deepLinkScheme = "learningwords"
     // Coprime with any realistic word count, so slots walk the whole list in a scattered order.
     private static let stride = 7919
@@ -46,9 +48,34 @@ enum WordSchedule {
         return ((slot % count) * (stride % count) % count + count) % count
     }
 
-    static func word(forSlot slot: Int) -> Word? {
+    static func day(at date: Date) -> Int {
+        slot(at: date, intervalHours: hoursPerDay)
+    }
+
+    static func dayStart(_ day: Int, near date: Date) -> Date {
+        slotStart(day, intervalHours: hoursPerDay, near: date)
+    }
+
+    /// The lesson for a day: consecutive positions in the scattered order, so no word repeats
+    /// until the whole list has been taught.
+    static func words(forDay day: Int) -> [Word] {
         let words = WordStore.all
-        return words.isEmpty ? nil : words[index(forSlot: slot)]
+        guard !words.isEmpty else { return [] }
+        return (0..<wordsPerDay).map { words[index(forSlot: day * wordsPerDay + $0)] }
+    }
+
+    /// The widget cycles through the day's lesson, one word per hour.
+    static func word(forHourSlot slot: Int) -> Word? {
+        let day = Int((Double(slot) / Double(hoursPerDay)).rounded(.down))
+        let lesson = words(forDay: day)
+        return lesson.isEmpty ? nil : lesson[(slot - day * hoursPerDay) % lesson.count]
+    }
+
+    static func lessonSpeech(_ words: [Word], withExamples: Bool) -> String {
+        words.map { word in
+            withExamples ? ([word.word] + word.examples.prefix(1).map(\.en)).joined(separator: ". ") : word.word
+        }
+        .joined(separator: ". ")
     }
 
     static func deepLink(for word: Word) -> URL? {

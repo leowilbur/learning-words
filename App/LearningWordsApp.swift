@@ -5,9 +5,11 @@ final class AppModel: ObservableObject {
     static let shared = AppModel()
     private static let favoritesKey = "favorites"
 
-    @Published var slot = WordSchedule.slot(at: .now, intervalHours: WordSchedule.defaultIntervalHours)
-    @Published var linkedWord: Word?
+    @Published var day = WordSchedule.day(at: .now)
+    @Published var path: [Word] = []
     @Published var tab = 0
+    private var lastToday = WordSchedule.day(at: .now)
+    private var pinned = false
     @Published var favorites: Set<String> {
         didSet { UserDefaults.standard.set(Array(favorites), forKey: Self.favoritesKey) }
     }
@@ -16,18 +18,27 @@ final class AppModel: ObservableObject {
         favorites = Set(UserDefaults.standard.stringArray(forKey: Self.favoritesKey) ?? [])
     }
 
-    var currentWord: Word? {
-        linkedWord ?? WordSchedule.word(forSlot: slot)
-    }
-
-    func step(_ delta: Int) {
-        linkedWord = nil
-        slot += delta
-    }
-
     func show(_ word: Word) {
-        linkedWord = word
+        path = [word]
         tab = 0
+    }
+
+    func showDay(_ day: Int) {
+        pinned = true
+        self.day = day
+        path = []
+        tab = 0
+    }
+
+    /// Moves to the new day's lesson when the date changed since the app was last active,
+    /// unless a notification just asked for a specific day.
+    func rollOverIfNeeded() {
+        let today = WordSchedule.day(at: .now)
+        if today != lastToday {
+            lastToday = today
+            if !pinned { day = today }
+        }
+        pinned = false
     }
 
     func toggleFavorite(_ word: Word) {
@@ -52,7 +63,7 @@ struct LearningWordsApp: App {
         WindowGroup {
             TabView(selection: $model.tab) {
                 TodayView()
-                    .tabItem { Label("Từ mới", systemImage: "sparkles") }
+                    .tabItem { Label("Hôm nay", systemImage: "sparkles") }
                     .tag(0)
                 WordListView()
                     .tabItem { Label("Danh sách", systemImage: "list.bullet") }
@@ -69,6 +80,7 @@ struct LearningWordsApp: App {
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
+                model.rollOverIfNeeded()
                 Task { await NotificationManager.shared.refresh() }
             }
         }
