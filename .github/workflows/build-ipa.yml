@@ -10,6 +10,9 @@ on:
 permissions:
   contents: write
 
+env:
+  APP_VERSION: 1.${{ github.run_number }}
+
 jobs:
   build:
     runs-on: macos-15
@@ -32,6 +35,7 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            MARKETING_VERSION="$APP_VERSION" \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build | tail -n 200
@@ -51,7 +55,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "build-${{ github.run_number }}" LearningWords.ipa \
-            --title "Build ${{ github.run_number }}" \
+          gh release create "v$APP_VERSION" LearningWords.ipa \
+            --title "v$APP_VERSION" \
             --notes "Unsigned IPA from ${{ github.sha }}. Install with Sideloadly or AltStore." \
             --target "${{ github.sha }}"

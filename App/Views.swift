@@ -124,7 +124,7 @@ struct WordListView: View {
 struct SettingsView: View {
     @AppStorage(Speaker.rateKey) private var rate = Speaker.defaultRate
     @AppStorage(Speaker.widgetLogKey) private var widgetLog = "Chưa có lần nào"
-    private let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+    private let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
 
     var body: some View {
         NavigationStack {
@@ -151,7 +151,7 @@ struct SettingsView: View {
                 }
                 .font(.subheadline)
                 Section("Chẩn đoán") {
-                    LabeledContent("Bản build", value: build)
+                    LabeledContent("Phiên bản", value: version)
                     LabeledContent("Lần bấm loa gần nhất từ widget", value: widgetLog)
                 }
                 .font(.subheadline)
