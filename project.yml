@@ -22,7 +22,8 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
-        UIBackgroundModes: [audio]
+        UIBackgroundModes: [audio, fetch]
+        BGTaskSchedulerPermittedIdentifiers: [com.leowilbur.learningwords.refresh]
         CFBundleURLTypes:
           - CFBundleURLName: com.leowilbur.learningwords
             CFBundleURLSchemes: [learningwords]

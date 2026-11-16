@@ -124,6 +124,10 @@ struct WordListView: View {
 struct SettingsView: View {
     @AppStorage(Speaker.rateKey) private var rate = Speaker.defaultRate
     @AppStorage(Speaker.widgetLogKey) private var widgetLog = "Chưa có lần nào"
+    @AppStorage(Speaker.notificationLogKey) private var notificationLog = "Chưa có lần nào"
+    @AppStorage(NotificationManager.enabledKey) private var notificationsEnabled = true
+    @AppStorage(NotificationManager.startHourKey) private var startHour = 7
+    @AppStorage(NotificationManager.endHourKey) private var endHour = 22
     private let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
 
     var body: some View {
@@ -143,6 +147,27 @@ struct SettingsView: View {
                 } footer: {
                     Text("Áp dụng cho cả app và widget.")
                 }
+                Section {
+                    Toggle("Từ mới mỗi giờ", isOn: $notificationsEnabled)
+                    if notificationsEnabled {
+                        Picker("Từ", selection: $startHour) {
+                            ForEach(0..<24, id: \.self) { Text("\($0):00").tag($0) }
+                        }
+                        Picker("Đến", selection: $endHour) {
+                            ForEach(0..<24, id: \.self) { Text("\($0):00").tag($0) }
+                        }
+                        Button("Gửi thử sau 5 giây") {
+                            Task { await NotificationManager.shared.sendTest() }
+                        }
+                    }
+                } header: {
+                    Text("Thông báo")
+                } footer: {
+                    Text("Giữ lên thông báo để hiện nút Nghe từ và Nghe từ và câu mẫu. Chạm vào thông báo để mở app và nghe từ đó. Nếu không thấy thông báo, bật Cho phép trong Cài đặt > Thông báo > Từ Mới.")
+                }
+                .onChange(of: [notificationsEnabled ? 1 : 0, startHour, endHour]) {
+                    Task { await NotificationManager.shared.refresh() }
+                }
                 Section("Widget") {
                     Text("Widget tự đổi sang từ mới mỗi giờ.")
                     Text("Chạm loa hoặc một câu để nghe ngay. Chạm chỗ khác để mở app và nghe từ đó.")
@@ -153,6 +178,7 @@ struct SettingsView: View {
                 Section("Chẩn đoán") {
                     LabeledContent("Phiên bản", value: version)
                     LabeledContent("Lần bấm loa gần nhất từ widget", value: widgetLog)
+                    LabeledContent("Lần nghe gần nhất từ thông báo", value: notificationLog)
                 }
                 .font(.subheadline)
             }

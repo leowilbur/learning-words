@@ -9,6 +9,8 @@ shows a new word with common spoken sentences; tapping plays US pronunciation.
 - Lock-screen widget (rectangular below the clock, inline above it), new word every hour by default.
 - Tap the speaker or a sentence in the widget to hear it without opening the app.
 - App with the current word, a searchable word list, favorites and speech-rate setting.
+- Hourly local notification with the word, meaning and examples, with action buttons that
+  speak it without opening the app.
 - Unsigned `.ipa` produced by GitHub Actions for sideloading.
 
 ## Non-goals
@@ -28,6 +30,13 @@ shows a new word with common spoken sentences; tapping plays US pronunciation.
   the background, where a mixable session can be refused. Tapping the widget background opens
   the app and speaks the word as a fallback. Settings shows the build number and the result of
   the last widget-triggered speak, since there is no device log access during development.
+- **Hourly notifications are local** (`App/NotificationManager.swift`), no server. iOS caps
+  pending local notifications at 64, so the app schedules the next 60 inside the user's active
+  hours (default 7:00-22:00) and tops up on every foreground and via a `BGAppRefreshTask`. If
+  the app is not opened and iOS never grants a refresh, notifications stop after a few days.
+  The notified word is the same clock-derived word the widget shows for that hour.
+- **Notification actions** are background actions; the delegate awaits the speech so the app
+  stays alive until it finishes. Tapping the notification body opens the app on that word.
 - **Speech** uses `AVSpeechSynthesizer` with the `en-US` system voice: offline, no API cost.
 - **No App Group.** Free-Apple-ID sideloading often breaks App Group entitlements. App and widget
   each bundle `Shared/words.json` and derive the word from the clock (`WordSchedule`), one word per

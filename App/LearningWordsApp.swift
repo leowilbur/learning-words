@@ -2,10 +2,12 @@ import SwiftUI
 
 @MainActor
 final class AppModel: ObservableObject {
+    static let shared = AppModel()
     private static let favoritesKey = "favorites"
 
     @Published var slot = WordSchedule.slot(at: .now, intervalHours: WordSchedule.defaultIntervalHours)
     @Published var linkedWord: Word?
+    @Published var tab = 0
     @Published var favorites: Set<String> {
         didSet { UserDefaults.standard.set(Array(favorites), forKey: Self.favoritesKey) }
     }
@@ -23,6 +25,11 @@ final class AppModel: ObservableObject {
         slot += delta
     }
 
+    func show(_ word: Word) {
+        linkedWord = word
+        tab = 0
+    }
+
     func toggleFavorite(_ word: Word) {
         if favorites.contains(word.id) {
             favorites.remove(word.id)
@@ -34,12 +41,16 @@ final class AppModel: ObservableObject {
 
 @main
 struct LearningWordsApp: App {
-    @StateObject private var model = AppModel()
-    @State private var tab = 0
+    @StateObject private var model = AppModel.shared
+    @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        NotificationManager.shared.configure()
+    }
 
     var body: some Scene {
         WindowGroup {
-            TabView(selection: $tab) {
+            TabView(selection: $model.tab) {
                 TodayView()
                     .tabItem { Label("Từ mới", systemImage: "sparkles") }
                     .tag(0)
@@ -53,10 +64,16 @@ struct LearningWordsApp: App {
             .environmentObject(model)
             .onOpenURL { url in
                 guard let word = WordSchedule.word(from: url) else { return }
-                model.linkedWord = word
-                tab = 0
+                model.show(word)
                 Task { await Speaker.shared.speak(word.word) }
             }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                Task { await NotificationManager.shared.refresh() }
+            }
+        }
+        .backgroundTask(.appRefresh(NotificationManager.refreshTaskID)) {
+            await NotificationManager.shared.refresh()
         }
     }
 }

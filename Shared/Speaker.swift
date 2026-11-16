@@ -6,6 +6,7 @@ final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
     static let rateKey = "speechRate"
     static let defaultRate = 0.45
     static let widgetLogKey = "lastWidgetSpeak"
+    static let notificationLogKey = "lastNotificationSpeak"
 
     private let synthesizer = AVSpeechSynthesizer()
     private var pending: [ObjectIdentifier: CheckedContinuation<Void, Never>] = [:]
