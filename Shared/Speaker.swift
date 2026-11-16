@@ -5,6 +5,7 @@ final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
     static let shared = Speaker()
     static let rateKey = "speechRate"
     static let defaultRate = 0.45
+    static let widgetLogKey = "lastWidgetSpeak"
 
     private let synthesizer = AVSpeechSynthesizer()
     private var pending: [ObjectIdentifier: CheckedContinuation<Void, Never>] = [:]
@@ -15,12 +16,21 @@ final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
     }
 
     /// Speaks with the US English system voice and returns once the utterance ends or is interrupted.
-    func speak(_ text: String) async {
+    /// Returns the audio session error, if any, so callers can surface why nothing was heard.
+    @discardableResult
+    func speak(_ text: String) async -> String? {
         synthesizer.stopSpeaking(at: .immediate)
 
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
-        try? session.setActive(true)
+        var failure: String?
+        do {
+            // Non-mixable on purpose: widget taps start audio while the app is in the background,
+            // where iOS can refuse to activate a mixable session (e.g. .duckOthers).
+            try session.setCategory(.playback, mode: .spokenAudio)
+            try session.setActive(true)
+        } catch {
+            failure = error.localizedDescription
+        }
 
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
@@ -35,6 +45,7 @@ final class Speaker: NSObject, AVSpeechSynthesizerDelegate {
         if pending.isEmpty {
             try? session.setActive(false, options: .notifyOthersOnDeactivation)
         }
+        return failure
     }
 
     private func finish(_ id: ObjectIdentifier) {

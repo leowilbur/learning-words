@@ -123,6 +123,8 @@ struct WordListView: View {
 
 struct SettingsView: View {
     @AppStorage(Speaker.rateKey) private var rate = Speaker.defaultRate
+    @AppStorage(Speaker.widgetLogKey) private var widgetLog = "Chưa có lần nào"
+    private let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
 
     var body: some View {
         NavigationStack {
@@ -143,8 +145,14 @@ struct SettingsView: View {
                 }
                 Section("Widget") {
                     Text("Widget tự đổi sang từ mới mỗi giờ.")
+                    Text("Chạm loa hoặc một câu để nghe ngay. Chạm chỗ khác để mở app và nghe từ đó.")
                     Text("Màn hình khóa: giữ lên màn hình khóa, chọn Tùy chỉnh, rồi thêm tiện ích Từ Mới vào ô dưới đồng hồ.")
                     Text("Để giọng đọc hay hơn: Cài đặt > Trợ năng > Nội dung được đọc > Giọng nói > Tiếng Anh, tải một giọng Mỹ chất lượng cao.")
+                }
+                .font(.subheadline)
+                Section("Chẩn đoán") {
+                    LabeledContent("Bản build", value: build)
+                    LabeledContent("Lần bấm loa gần nhất từ widget", value: widgetLog)
                 }
                 .font(.subheadline)
             }

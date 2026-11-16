@@ -55,6 +55,7 @@ struct LearningWordsApp: App {
                 guard let word = WordSchedule.word(from: url) else { return }
                 model.linkedWord = word
                 tab = 0
+                Task { await Speaker.shared.speak(word.word) }
             }
         }
     }

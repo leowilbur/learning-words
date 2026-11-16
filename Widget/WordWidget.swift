@@ -43,8 +43,12 @@ struct WordWidgetView: View {
                     Text("\(word.word) · \(word.meaning)")
                 case .accessoryRectangular:
                     lockScreen(word)
+                case .systemSmall:
+                    small(word)
+                case .systemMedium:
+                    medium(word)
                 default:
-                    content(word)
+                    large(word)
                 }
             }
             .widgetURL(WordSchedule.deepLink(for: word))
@@ -54,12 +58,38 @@ struct WordWidgetView: View {
         }
     }
 
-    private var exampleCount: Int {
-        switch family {
-        case .systemSmall: return 0
-        case .systemMedium: return 2
-        default: return 3
+    private func speakerButton(_ text: String, size: CGFloat) -> some View {
+        Button(intent: SpeakIntent(text: text)) {
+            Image(systemName: "speaker.wave.2.fill")
+                .font(.system(size: size * 0.42, weight: .semibold))
+                .frame(width: size, height: size)
+                .background(.white.opacity(0.24), in: Circle())
         }
+        .buttonStyle(.plain)
+    }
+
+    private func badge(_ text: String) -> some View {
+        Text(text.uppercased())
+            .font(.system(size: 10, weight: .bold))
+            .tracking(0.6)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(.white.opacity(0.2), in: Capsule())
+    }
+
+    private func title(_ word: Word, size: CGFloat) -> some View {
+        Text(word.word)
+            .font(.system(size: size, weight: .bold, design: .rounded))
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+    }
+
+    private func ipa(_ word: Word, size: CGFloat) -> some View {
+        Text(word.ipa)
+            .font(.system(size: size, design: .monospaced))
+            .opacity(0.85)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
     }
 
     private func lockScreen(_ word: Word) -> some View {
@@ -96,51 +126,97 @@ struct WordWidgetView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func content(_ word: Word) -> some View {
-        VStack(alignment: .leading, spacing: family == .systemLarge ? 10 : 4) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(word.word)
-                    .font(.system(size: family == .systemSmall ? 24 : 26, weight: .bold, design: .rounded))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+    private func small(_ word: Word) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            title(word, size: 26)
+            ipa(word, size: 12)
+            Text(word.meaning)
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 0)
+            HStack {
+                badge(word.pos)
+                Spacer(minLength: 0)
+                speakerButton(word.word, size: 34)
+            }
+        }
+        .foregroundStyle(.white)
+    }
+
+    private func medium(_ word: Word) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .center, spacing: 8) {
+                title(word, size: 26)
+                ipa(word, size: 12)
                 Spacer(minLength: 4)
-                Button(intent: SpeakIntent(text: word.word)) {
-                    Image(systemName: "speaker.wave.2.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .padding(7)
-                        .background(.white.opacity(0.22), in: Circle())
+                speakerButton(word.word, size: 32)
+            }
+            HStack(spacing: 6) {
+                badge(word.pos)
+                Text(word.meaning)
+                    .font(.system(size: 14, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            Spacer(minLength: 0)
+            ForEach(word.examples.prefix(2), id: \.self) { example in
+                Button(intent: SpeakIntent(text: example.en)) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 14))
+                        Text(example.en)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                        Spacer(minLength: 0)
+                    }
                 }
                 .buttonStyle(.plain)
             }
-            Text(word.ipa)
-                .font(.system(size: 13, design: .monospaced))
-                .opacity(0.85)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(word.meaning)
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(family == .systemSmall ? 3 : 1)
-                .minimumScaleFactor(0.8)
+        }
+        .foregroundStyle(.white)
+    }
 
-            ForEach(word.examples.prefix(exampleCount), id: \.self) { example in
+    private func large(_ word: Word) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center) {
+                title(word, size: 34)
+                Spacer(minLength: 4)
+                speakerButton(word.word, size: 40)
+            }
+            HStack(spacing: 8) {
+                ipa(word, size: 14)
+                badge(word.pos)
+            }
+            Text(word.meaning)
+                .font(.system(size: 17, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            ForEach(word.examples, id: \.self) { example in
                 Button(intent: SpeakIntent(text: example.en)) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("“\(example.en)”")
-                            .font(.system(size: 13, weight: .semibold))
-                            .lineLimit(family == .systemLarge ? 2 : 1)
-                            .minimumScaleFactor(0.75)
-                        if family == .systemLarge {
+                    HStack(alignment: .center, spacing: 10) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 22))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(example.en)
+                                .font(.system(size: 14, weight: .semibold))
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.8)
                             Text(example.vi)
                                 .font(.system(size: 12))
                                 .opacity(0.8)
-                                .lineLimit(2)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                         }
+                        Spacer(minLength: 0)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.plain)
             }
-            Spacer(minLength: 0)
         }
         .foregroundStyle(.white)
     }

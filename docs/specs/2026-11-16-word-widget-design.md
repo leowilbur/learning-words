@@ -24,6 +24,10 @@ shows a new word with common spoken sentences; tapping plays US pronunciation.
 - **iOS 17+**, required for `Button(intent:)` in widgets.
 - **Audio from the widget** uses an `AudioPlaybackIntent` (`SpeakIntent`) compiled into both
   targets, so iOS runs it in the app process; the app declares the `audio` background mode.
+- **Audio session is non-mixable** (`.playback`, no `.duckOthers`): widget taps start audio from
+  the background, where a mixable session can be refused. Tapping the widget background opens
+  the app and speaks the word as a fallback. Settings shows the build number and the result of
+  the last widget-triggered speak, since there is no device log access during development.
 - **Speech** uses `AVSpeechSynthesizer` with the `en-US` system voice: offline, no API cost.
 - **No App Group.** Free-Apple-ID sideloading often breaks App Group entitlements. App and widget
   each bundle `Shared/words.json` and derive the word from the clock (`WordSchedule`), one word per
