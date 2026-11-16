@@ -2,62 +2,32 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-enum RefreshInterval: String, AppEnum {
-    case hourly, threeHours, sixHours, daily
-
-    static var typeDisplayRepresentation: TypeDisplayRepresentation = "Tần suất đổi từ"
-    static var caseDisplayRepresentations: [RefreshInterval: DisplayRepresentation] = [
-        .hourly: "Mỗi giờ",
-        .threeHours: "Mỗi 3 giờ",
-        .sixHours: "Mỗi 6 giờ",
-        .daily: "Mỗi ngày",
-    ]
-
-    var hours: Int {
-        switch self {
-        case .hourly: return WordSchedule.defaultIntervalHours
-        case .threeHours: return 3
-        case .sixHours: return 6
-        case .daily: return 24
-        }
-    }
-}
-
-struct WordWidgetConfig: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource = "Từ mới"
-    static var description = IntentDescription("Chọn tần suất đổi từ.")
-
-    @Parameter(title: "Đổi từ", default: .hourly)
-    var interval: RefreshInterval
-}
-
 struct WordEntry: TimelineEntry {
     let date: Date
     let word: Word?
 }
 
-struct WordProvider: AppIntentTimelineProvider {
+struct WordProvider: TimelineProvider {
     private static let entriesPerTimeline = 12
+    private static let hours = WordSchedule.defaultIntervalHours
 
     func placeholder(in context: Context) -> WordEntry {
         WordEntry(date: .now, word: WordStore.all.first)
     }
 
-    func snapshot(for configuration: WordWidgetConfig, in context: Context) async -> WordEntry {
-        let hours = configuration.interval.hours
-        return WordEntry(date: .now, word: WordSchedule.word(forSlot: WordSchedule.slot(at: .now, intervalHours: hours)))
+    func getSnapshot(in context: Context, completion: @escaping (WordEntry) -> Void) {
+        completion(WordEntry(date: .now, word: WordSchedule.word(forSlot: WordSchedule.slot(at: .now, intervalHours: Self.hours))))
     }
 
-    func timeline(for configuration: WordWidgetConfig, in context: Context) async -> Timeline<WordEntry> {
-        let hours = configuration.interval.hours
+    func getTimeline(in context: Context, completion: @escaping (Timeline<WordEntry>) -> Void) {
         let now = Date()
-        let first = WordSchedule.slot(at: now, intervalHours: hours)
+        let first = WordSchedule.slot(at: now, intervalHours: Self.hours)
         let entries = (0..<Self.entriesPerTimeline).map { offset -> WordEntry in
             let slot = first + offset
-            let date = offset == 0 ? now : WordSchedule.slotStart(slot, intervalHours: hours, near: now)
+            let date = offset == 0 ? now : WordSchedule.slotStart(slot, intervalHours: Self.hours, near: now)
             return WordEntry(date: date, word: WordSchedule.word(forSlot: slot))
         }
-        return Timeline(entries: entries, policy: .atEnd)
+        completion(Timeline(entries: entries, policy: .atEnd))
     }
 }
 
@@ -179,7 +149,7 @@ struct WordWidgetView: View {
 @main
 struct WordWidget: Widget {
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: "WordWidget", intent: WordWidgetConfig.self, provider: WordProvider()) { entry in
+        StaticConfiguration(kind: "HourlyWordWidget", provider: WordProvider()) { entry in
             WordWidgetView(entry: entry)
                 .containerBackground(for: .widget) {
                     LinearGradient(

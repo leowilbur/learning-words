@@ -142,7 +142,7 @@ struct SettingsView: View {
                     Text("Áp dụng cho cả app và widget.")
                 }
                 Section("Widget") {
-                    Text("Từ đổi mỗi giờ. Giữ lên widget, chọn Sửa tiện ích để đổi sang 3 giờ, 6 giờ hoặc mỗi ngày.")
+                    Text("Widget tự đổi sang từ mới mỗi giờ.")
                     Text("Màn hình khóa: giữ lên màn hình khóa, chọn Tùy chỉnh, rồi thêm tiện ích Từ Mới vào ô dưới đồng hồ.")
                     Text("Để giọng đọc hay hơn: Cài đặt > Trợ năng > Nội dung được đọc > Giọng nói > Tiếng Anh, tải một giọng Mỹ chất lượng cao.")
                 }
