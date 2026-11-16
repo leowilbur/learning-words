@@ -6,6 +6,7 @@ shows a new word with common spoken sentences; tapping plays US pronunciation.
 
 ## Goals
 - Widget (small, medium, large) showing word, IPA, Vietnamese meaning and example sentences.
+- Lock-screen widget (rectangular below the clock, inline above it), new word every hour by default.
 - Tap the speaker or a sentence in the widget to hear it without opening the app.
 - App with the current word, a searchable word list, favorites and speech-rate setting.
 - Unsigned `.ipa` produced by GitHub Actions for sideloading.

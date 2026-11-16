@@ -25,7 +25,7 @@ enum WordStore {
 }
 
 enum WordSchedule {
-    static let defaultIntervalHours = 3
+    static let defaultIntervalHours = 1
     static let deepLinkScheme = "learningwords"
     // Coprime with any realistic word count, so slots walk the whole list in a scattered order.
     private static let stride = 7919

@@ -15,8 +15,8 @@ enum RefreshInterval: String, AppEnum {
 
     var hours: Int {
         switch self {
-        case .hourly: return 1
-        case .threeHours: return WordSchedule.defaultIntervalHours
+        case .hourly: return WordSchedule.defaultIntervalHours
+        case .threeHours: return 3
         case .sixHours: return 6
         case .daily: return 24
         }
@@ -27,7 +27,7 @@ struct WordWidgetConfig: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "Từ mới"
     static var description = IntentDescription("Chọn tần suất đổi từ.")
 
-    @Parameter(title: "Đổi từ", default: .threeHours)
+    @Parameter(title: "Đổi từ", default: .hourly)
     var interval: RefreshInterval
 }
 
@@ -67,8 +67,17 @@ struct WordWidgetView: View {
 
     var body: some View {
         if let word = entry.word {
-            content(word)
-                .widgetURL(WordSchedule.deepLink(for: word))
+            Group {
+                switch family {
+                case .accessoryInline:
+                    Text("\(word.word) · \(word.meaning)")
+                case .accessoryRectangular:
+                    lockScreen(word)
+                default:
+                    content(word)
+                }
+            }
+            .widgetURL(WordSchedule.deepLink(for: word))
         } else {
             Text("Chưa có dữ liệu từ vựng")
                 .font(.footnote)
@@ -81,6 +90,40 @@ struct WordWidgetView: View {
         case .systemMedium: return 2
         default: return 3
         }
+    }
+
+    private func lockScreen(_ word: Word) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(word.word)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                Text(word.ipa)
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .opacity(0.8)
+                Spacer(minLength: 2)
+                Button(intent: SpeakIntent(text: word.word)) {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+            }
+            Text(word.meaning)
+                .font(.caption)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            if let example = word.examples.first {
+                Text(example.en)
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .opacity(0.8)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func content(_ word: Word) -> some View {
@@ -148,6 +191,6 @@ struct WordWidget: Widget {
         }
         .configurationDisplayName("Từ mới")
         .description("Từ vựng và câu giao tiếp kiểu Mỹ. Chạm loa hoặc câu để nghe.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular, .accessoryInline])
     }
 }
