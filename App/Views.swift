@@ -57,6 +57,8 @@ struct WordDetail: View {
 struct TodayView: View {
     @EnvironmentObject private var model: AppModel
 
+    @State private var testResult: String?
+
     private var words: [Word] { WordSchedule.words(forDay: model.day) }
 
     private var title: String {
@@ -104,7 +106,24 @@ struct TodayView: View {
                     .navigationBarTitleDisplayMode(.inline)
             }
             .navigationTitle(title)
+            .alert("Thông báo thử", isPresented: Binding(get: { testResult != nil }, set: { if !$0 { testResult = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(testResult ?? "")
+            }
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task {
+                            let sent = await NotificationManager.shared.sendTest(day: model.day)
+                            testResult = sent
+                                ? "Thông báo \(words.count) từ này sẽ đến sau 5 giây. Khóa máy để xem trên màn hình khóa."
+                                : "Chưa gửi được. Hãy bật Cho phép trong Cài đặt > Thông báo > Từ Mới."
+                        }
+                    } label: {
+                        Label("Gửi thử thông báo", systemImage: "bell.badge")
+                    }
+                }
                 ToolbarItemGroup(placement: .bottomBar) {
                     Button { model.day -= 1 } label: { Label("Hôm trước", systemImage: "chevron.left") }
                     Spacer()
@@ -193,7 +212,7 @@ struct SettingsView: View {
                         Picker("Giờ nhận", selection: $notificationHour) {
                             ForEach(0..<24, id: \.self) { Text("\($0):00").tag($0) }
                         }
-                        Button("Gửi thử sau 5 giây") {
+                        Button("Gửi thử \(WordSchedule.wordsPerDay) từ hôm nay sau 5 giây") {
                             Task { await NotificationManager.shared.sendTest() }
                         }
                     }

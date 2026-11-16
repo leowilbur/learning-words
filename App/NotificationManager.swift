@@ -62,11 +62,17 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         try? BGTaskScheduler.shared.submit(task)
     }
 
-    func sendTest() async {
-        guard await authorize() else { return }
+    /// Sends the given day's lesson shortly after the tap. Returns false when notifications are not allowed.
+    @discardableResult
+    func sendTest(day: Int = WordSchedule.day(at: .now)) async -> Bool {
+        guard await authorize() else { return false }
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: Self.testDelay, repeats: false)
-        let content = content(forDay: WordSchedule.day(at: .now))
-        try? await center.add(UNNotificationRequest(identifier: Self.testRequestID, content: content, trigger: trigger))
+        do {
+            try await center.add(UNNotificationRequest(identifier: Self.testRequestID, content: content(forDay: day), trigger: trigger))
+            return true
+        } catch {
+            return false
+        }
     }
 
     private func authorize() async -> Bool {
